@@ -131,6 +131,16 @@ async function initDatabase() {
             )
         `);
 
+        // Create default user if not exists
+        const userCount = await get('SELECT COUNT(*) as count FROM users');
+        if (userCount.count === 0) {
+            await run(
+                'INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)',
+                [1, 'guest', 'guest@keutrack.com', ''] // Pastikan ID = 1
+            );
+            console.log('✅ Default user created with ID 1');
+        }
+        
         console.log('✅ Database tables initialized successfully');
     } catch (error) {
         console.error('❌ Error initializing database:', error.message);
