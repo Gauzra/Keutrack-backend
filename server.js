@@ -62,20 +62,26 @@ const PORT = process.env.PORT || 2001;
 app.use(cors());
 app.use(express.json());
 
-// PERBAIKAN DI SINI:
-// Serve static files dari folder Publics
-app.use(express.static(path.join(__dirname, 'Publics')));
+// ===== MIDDLEWARE =====
+app.use(cors());
+app.use(express.json());
 
-// Redirect root ke dashboard
+// ===== ROUTES TEST ===== (TAMBAH INI)
 app.get('/', (req, res) => {
-    res.redirect('/dashboard.html');
+    res.send('Backend KeuTrack is running successfully!');
 });
-// Koneksi ke MySQL (XAMPP)
+
+app.get('/api/test', (req, res) => {
+    res.json({ message: 'This is a test API endpoint!', status: 200 });
+});
+
+// Gunakan variable environment dari Railway, fallback ke lokal untuk development
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '', // Kosong untuk XAMPP
-    database: 'keutrack'
+    host: process.env.MYSQLHOST || 'railway', // Railway akan isi MYSQLHOST
+    user: process.env.MYSQLUSER || 'root',      // Railway akan isi MYSQLUSER
+    password: process.env.MYSQLPASSWORD || 'ZsMLbRAoYTTUipeHyKPFAcWxRKNHYAmT',  // Railway akan isi MYSQLPASSWORD
+    database: process.env.MYSQLDATABASE || 'railway', // Railway akan isi MYSQLDATABASE
+    port: process.env.MYSQLPORT || 3306         // Railway akan isi MYSQLPORT
 });
 
 // Initialize database tables
