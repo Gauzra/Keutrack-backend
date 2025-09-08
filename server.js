@@ -77,11 +77,11 @@ app.get('/api/test', (req, res) => {
 
 // Gunakan variable environment dari Railway, fallback ke lokal untuk development
 const db = mysql.createConnection({
-    host: process.env.MYSQLHOST || 'railway', // Railway akan isi MYSQLHOST
-    user: process.env.MYSQLUSER || 'root',      // Railway akan isi MYSQLUSER
-    password: process.env.MYSQLPASSWORD || 'ZsMLbRAoYTTUipeHyKPFAcWxRKNHYAmT',  // Railway akan isi MYSQLPASSWORD
-    database: process.env.MYSQLDATABASE || 'railway', // Railway akan isi MYSQLDATABASE
-    port: process.env.MYSQLPORT || 3306         // Railway akan isi MYSQLPORT
+    host: process.env.MYSQLHOST || 'localhost', // Fallback ke LOCALHOST
+    user: process.env.MYSQLUSER || 'root',      // Fallback ke user lokal
+    password: process.env.MYSQLPASSWORD || '',  // Fallback ke password lokal (kosong untuk XAMPP)
+    database: process.env.MYSQLDATABASE || 'keutrack', // Fallback ke nama DB lokal
+    port: process.env.MYSQLPORT || 3306         // Fallback ke port lokal
 });
 
 // Initialize database tables
