@@ -140,7 +140,7 @@ async function initDatabase() {
             );
             console.log('✅ Default user created with ID 1');
         }
-        
+
         console.log('✅ Database tables initialized successfully');
     } catch (error) {
         console.error('❌ Error initializing database:', error.message);
@@ -404,6 +404,12 @@ app.post('/api/transactions', async (req, res) => {
             return res.status(400).json({ error: 'debit_account_id, credit_account_id, amount, transaction_date are required' });
         }
 
+        // ===== KONVERSI TANGGAL =====
+        // Ubah dari format ISO (2025-09-07T17:00:00.000Z) menjadi YYYY-MM-DD
+        const dateObj = new Date(transaction_date);
+        const formattedDate = dateObj.toISOString().split('T')[0];
+        // ============================
+
         // Ambil data akun untuk menghitung saldo yang benar
         const debitAccount = await get('SELECT * FROM accounts WHERE id = ?', [debit_account_id]);
         const creditAccount = await get('SELECT * FROM accounts WHERE id = ?', [credit_account_id]);
@@ -414,7 +420,8 @@ app.post('/api/transactions', async (req, res) => {
 
         await run(
             'INSERT INTO transactions (user_id, debit_account_id, credit_account_id, amount, description, transaction_date) VALUES (?, ?, ?, ?, ?, ?)',
-            [user_id, debit_account_id, credit_account_id, Number(amount), description, transaction_date]
+            // Gunakan formattedDate di sini:
+            [user_id, debit_account_id, credit_account_id, Number(amount), description, formattedDate]
         );
 
         // Update saldo akun berdasarkan normal balance yang benar
