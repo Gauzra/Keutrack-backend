@@ -81,7 +81,10 @@ const db = mysql.createConnection({
     user: process.env.MYSQLUSER || 'root',                   // User yang benar
     password: process.env.MYSQLPASSWORD || 'ZsMLbRAoYTTUipeHyKPFAcWxRKNHYAmT', // Password yang benar
     database: process.env.MYSQLDATABASE || 'railway',        // Database yang benar
-    port: process.env.MYSQLPORT || 3306                      // PORT YANG BENAR adalah 3386, bukan 3306
+    port: process.env.MYSQLPORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    quenetLimit: 0                   // PORT YANG BENAR adalah 3386, bukan 3306
 });
 
 // Initialize database tables
