@@ -561,7 +561,7 @@ app.delete('/api/transactions/:id', async (req, res) => {
     }
 });
 
-// ==================== REPORTS ====================
+// ==================== GENERAL JOURNAL ====================
 app.get('/api/reports/general-journal', async (req, res) => {
     try {
         const journalEntries = await all(`
@@ -642,6 +642,73 @@ app.get('/api/reports/general-journal', async (req, res) => {
         });
 
     } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ==================== LEDGER ====================
+ app.get('/api/reports/ledger', async (req, res) => {
+    try {
+        // 1. Ambil semua akun
+        const accounts = await all('SELECT * FROM accounts ORDER BY code');
+        
+        // 2. Ambil semua transaksi
+        const transactions = await all(`
+            SELECT t.*, 
+                da.name as debit_account_name, 
+                ca.name as credit_account_name
+            FROM transactions t
+            LEFT JOIN accounts da ON t.debit_account_id = da.id
+            LEFT JOIN accounts ca ON t.credit_account_id = ca.id
+            ORDER BY t.transaction_date, t.id
+        `);
+
+        // 3. Format response sesuai kebutuhan frontend
+        const ledgers = accounts.map(account => {
+            // Filter transaksi untuk akun ini
+            const accountTransactions = transactions.filter(t => 
+                t.debit_account_id === account.id || t.credit_account_id === account.id
+            );
+
+            // Hitung saldo running
+            let runningBalance = 0;
+            const entries = accountTransactions.map(t => {
+                const isDebit = t.debit_account_id === account.id;
+                const amount = Number(t.amount);
+                
+                if (isDebit) {
+                    runningBalance += amount;
+                } else {
+                    runningBalance -= amount;
+                }
+
+                return {
+                    date: new Date(t.transaction_date).toLocaleDateString('id-ID'),
+                    description: t.description || '',
+                    debit: isDebit ? amount : 0,
+                    credit: !isDebit ? amount : 0,
+                    balance: runningBalance
+                };
+            });
+
+            return {
+                account: {
+                    code: account.code,
+                    name: account.name
+                },
+                entries: entries,
+                totalDebit: entries.reduce((sum, entry) => sum + entry.debit, 0),
+                totalCredit: entries.reduce((sum, entry) => sum + entry.credit, 0)
+            };
+        });
+
+        res.json({
+            success: true,
+            ledgers: ledgers.filter(l => l.entries.length > 0) // Hanya kirim akun yang punya transaksi
+        });
+
+    } catch (e) {
+        console.error('Error generating ledger:', e);
         res.status(500).json({ error: e.message });
     }
 });
@@ -734,6 +801,7 @@ async function getTrialBalanceData() {
         };
     }
 }
+
 
 app.get('/api/reports/trial-balance', async (req, res) => {
     try {
