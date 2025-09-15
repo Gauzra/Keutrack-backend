@@ -221,15 +221,15 @@ app.get('/api/health', async (req, res) => {
     try {
         // Test database connection
         const result = await get('SELECT 1 as test');
-        res.json({ 
-            ok: true, 
+        res.json({
+            ok: true,
             message: 'KeuTrack API is running',
             database: 'connected',
             timestamp: new Date().toISOString()
         });
     } catch (error) {
-        res.status(500).json({ 
-            ok: false, 
+        res.status(500).json({
+            ok: false,
             message: 'Database connection failed',
             error: error.message,
             code: error.code
@@ -252,7 +252,7 @@ app.post('/api/users/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         if (!username || !password) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Validation error',
                 message: 'username dan password diperlukan',
                 required: ['username', 'password']
@@ -267,14 +267,14 @@ app.post('/api/users/login', async (req, res) => {
                 message: 'Login berhasil'
             });
         } else {
-            res.status(401).json({ 
+            res.status(401).json({
                 error: 'Authentication failed',
                 message: 'Username atau password salah'
             });
         }
     } catch (e) {
         console.error('❌ [POST /api/users/login] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Login failed',
             message: e.message,
             code: e.code,
@@ -287,7 +287,7 @@ app.post('/api/users/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
         if (!username || !email || !password) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Validation error',
                 message: 'username, email, dan password diperlukan',
                 required: ['username', 'email', 'password']
@@ -298,7 +298,7 @@ app.post('/api/users/register', async (req, res) => {
             'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
             [username, email, password]
         );
-        
+
         const user = await get('SELECT * FROM users WHERE username = ?', [username]);
         res.status(201).json({
             success: true,
@@ -307,7 +307,7 @@ app.post('/api/users/register', async (req, res) => {
         });
     } catch (e) {
         console.error('❌ [POST /api/users/register] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Registration failed',
             message: e.message,
             code: e.code,
@@ -328,7 +328,7 @@ app.get('/api/accounts', async (req, res) => {
         res.json(rows);
     } catch (e) {
         console.error('❌ [GET /api/accounts] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Database query failed',
             message: e.message,
             code: e.code,
@@ -341,7 +341,7 @@ app.post('/api/accounts', async (req, res) => {
     try {
         const { name, balance = 0, code, category, user_id = 1 } = req.body;
         if (!name) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Validation error',
                 message: 'name is required',
                 required: ['name']
@@ -358,13 +358,13 @@ app.post('/api/accounts', async (req, res) => {
             'INSERT INTO accounts (user_id, name, balance, code, category, account_type, normal_balance) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [user_id, name, Number(balance) || 0, accountCode, classification.category, classification.type, classification.normalBalance]
         );
-        
+
         const lastIdResult = await get('SELECT LAST_INSERT_ID() as id');
         const row = await get('SELECT * FROM accounts WHERE id = ?', [lastIdResult.id]);
         res.status(201).json(row);
     } catch (e) {
         console.error('❌ [POST /api/accounts] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to create account',
             message: e.message,
             code: e.code,
@@ -390,12 +390,12 @@ app.put('/api/accounts/:id', async (req, res) => {
             'UPDATE accounts SET name = COALESCE(?, name), balance = COALESCE(?, balance), category = COALESCE(?, category), account_type = COALESCE(?, account_type), normal_balance = COALESCE(?, normal_balance) WHERE id = ?',
             [updateData.name, updateData.balance, updateData.category, updateData.account_type, updateData.normal_balance, id]
         );
-        
+
         const row = await get('SELECT * FROM accounts WHERE id = ?', [id]);
         res.json(row);
     } catch (e) {
         console.error('❌ [PUT /api/accounts/:id] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to update account',
             message: e.message,
             code: e.code,
@@ -411,7 +411,7 @@ app.delete('/api/accounts/:id', async (req, res) => {
         res.json({ ok: true });
     } catch (e) {
         console.error('❌ [DELETE /api/accounts/:id] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to delete account',
             message: e.message,
             code: e.code,
@@ -484,7 +484,7 @@ app.get('/api/transactions', async (req, res) => {
         res.json(rows);
     } catch (e) {
         console.error('❌ [GET /api/transactions] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to fetch transactions',
             message: e.message,
             code: e.code,
@@ -496,9 +496,9 @@ app.get('/api/transactions', async (req, res) => {
 app.post('/api/transactions', async (req, res) => {
     try {
         const { debit_account_id, credit_account_id, amount, description, transaction_date, user_id = 1 } = req.body;
-        
+
         if (!debit_account_id || !credit_account_id || !amount || !transaction_date) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Validation error',
                 message: 'debit_account_id, credit_account_id, amount, transaction_date are required',
                 required: ['debit_account_id', 'credit_account_id', 'amount', 'transaction_date']
@@ -512,7 +512,7 @@ app.post('/api/transactions', async (req, res) => {
         const creditAccount = await get('SELECT * FROM accounts WHERE id = ?', [credit_account_id]);
 
         if (!debitAccount || !creditAccount) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Account not found',
                 message: 'Akun debit atau kredit tidak ditemukan'
             });
@@ -543,7 +543,7 @@ app.post('/api/transactions', async (req, res) => {
         res.status(201).json(row);
     } catch (e) {
         console.error('❌ [POST /api/transactions] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to create transaction',
             message: e.message,
             code: e.code,
@@ -596,7 +596,7 @@ app.put('/api/transactions/:id', async (req, res) => {
                 }
             }
         }
-        
+
         if (credit_account_id && amount) {
             const newCreditAccount = await get('SELECT * FROM accounts WHERE id = ?', [credit_account_id]);
             if (newCreditAccount) {
@@ -613,7 +613,7 @@ app.put('/api/transactions/:id', async (req, res) => {
         res.json(row);
     } catch (e) {
         console.error('❌ [PUT /api/transactions/:id] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to update transaction',
             message: e.message,
             code: e.code,
@@ -653,7 +653,7 @@ app.delete('/api/transactions/:id', async (req, res) => {
         res.json({ ok: true });
     } catch (e) {
         console.error('❌ [DELETE /api/transactions/:id] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to delete transaction',
             message: e.message,
             code: e.code,
@@ -742,7 +742,7 @@ app.get('/api/reports/general-journal', async (req, res) => {
 
     } catch (e) {
         console.error('❌ [GET /api/reports/general-journal] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to generate general journal',
             message: e.message,
             code: e.code,
@@ -754,7 +754,7 @@ app.get('/api/reports/general-journal', async (req, res) => {
 app.get('/api/reports/ledger', async (req, res) => {
     try {
         const accounts = await all('SELECT * FROM accounts ORDER BY code');
-        
+
         const transactions = await all(`
             SELECT t.*, 
                 da.name as debit_account_name, 
@@ -766,7 +766,7 @@ app.get('/api/reports/ledger', async (req, res) => {
         `);
 
         const ledgers = accounts.map(account => {
-            const accountTransactions = transactions.filter(t => 
+            const accountTransactions = transactions.filter(t =>
                 t.debit_account_id === account.id || t.credit_account_id === account.id
             );
 
@@ -774,7 +774,7 @@ app.get('/api/reports/ledger', async (req, res) => {
             const entries = accountTransactions.map(t => {
                 const isDebit = t.debit_account_id === account.id;
                 const amount = Number(t.amount);
-                
+
                 if (isDebit) {
                     runningBalance += amount;
                 } else {
@@ -809,7 +809,7 @@ app.get('/api/reports/ledger', async (req, res) => {
 
     } catch (e) {
         console.error('❌ [GET /api/reports/ledger] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to generate ledger',
             message: e.message,
             code: e.code,
@@ -926,7 +926,7 @@ app.get('/api/reports/trial-balance', async (req, res) => {
 
     } catch (e) {
         console.error('❌ [GET /api/reports/trial-balance] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to generate trial balance',
             message: e.message,
             code: e.code,
@@ -937,32 +937,40 @@ app.get('/api/reports/trial-balance', async (req, res) => {
 
 app.get('/api/reports/income-statement', async (req, res) => {
     try {
-        console.log('📈 Generating income statement...');
+        console.log('📈 Generating income statement from Trial Balance...');
 
-        const accounts = await all('SELECT * FROM accounts');
+        // Ambil data dari trial balance
+        const trialBalanceResponse = await getTrialBalanceData();
+
+        if (!trialBalanceResponse.success) {
+            return res.status(500).json({ error: trialBalanceResponse.error });
+        }
+
+        const trialBalance = trialBalanceResponse.trialBalance;
 
         let totalRevenue = 0;
         let totalExpense = 0;
         const revenueAccounts = [];
         const expenseAccounts = [];
 
-        accounts.forEach(account => {
-            const classification = classifyAccount(account.name, account.code);
-            const balance = Number(account.balance || 0);
+        // Proses hanya akun nominal dari trial balance
+        trialBalance.forEach(entry => {
+            const accountType = entry.account.account_type;
+            const balance = entry.finalBalance;
 
-            if (classification.type === 'PENDAPATAN') {
+            if (accountType === 'PENDAPATAN') {
                 revenueAccounts.push({
-                    code: account.code,
-                    name: account.name,
+                    code: entry.account.code,
+                    name: entry.account.name,
                     amount: balance
                 });
                 totalRevenue += balance;
             }
 
-            if (classification.type === 'BEBAN') {
+            if (accountType === 'BEBAN') {
                 expenseAccounts.push({
-                    code: account.code,
-                    name: account.name,
+                    code: entry.account.code,
+                    name: entry.account.name,
                     amount: balance
                 });
                 totalExpense += balance;
@@ -982,12 +990,13 @@ app.get('/api/reports/income-statement', async (req, res) => {
                 total: totalExpense
             },
             netIncome: netIncome,
+            dataSource: 'trial-balance',  // Tambahkan ini
             generatedAt: new Date().toISOString()
         });
 
     } catch (e) {
         console.error('❌ [GET /api/reports/income-statement] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to generate income statement',
             message: e.message,
             code: e.code,
@@ -998,10 +1007,19 @@ app.get('/api/reports/income-statement', async (req, res) => {
 
 app.get('/api/reports/balance-sheet', async (req, res) => {
     try {
-        console.log('💹 Generating balance sheet...');
+        console.log('💹 Generating balance sheet from Trial Balance...');
 
-        const accounts = await all('SELECT * FROM accounts');
+        // Ambil data dari trial balance (bukan langsung dari accounts)
+        const trialBalanceResponse = await getTrialBalanceData();
 
+        if (!trialBalanceResponse.success) {
+            return res.status(500).json({
+                error: 'Failed to get trial balance data',
+                message: trialBalanceResponse.error
+            });
+        }
+
+        const trialBalance = trialBalanceResponse.trialBalance;
         const balanceSheet = {
             assets: { currentAssets: [], nonCurrentAssets: [], total: 0 },
             liabilities: { currentLiabilities: [], total: 0 },
@@ -1011,32 +1029,39 @@ app.get('/api/reports/balance-sheet', async (req, res) => {
         let totalRevenue = 0;
         let totalExpense = 0;
 
-        accounts.forEach(account => {
-            const classification = classifyAccount(account.name, account.code);
-            const balance = Number(account.balance || 0);
+        // Pisahkan akun nominal dan riil dari trial balance
+        trialBalance.forEach(entry => {
+            const accountType = entry.account.account_type;
+            const balance = entry.finalBalance;
 
-            if (classification.type === 'PENDAPATAN') totalRevenue += balance;
-            if (classification.type === 'BEBAN') totalExpense += balance;
+            if (accountType === 'PENDAPATAN') {
+                totalRevenue += balance;
+            } else if (accountType === 'BEBAN') {
+                totalExpense += balance;
+            }
         });
 
         const netIncome = totalRevenue - totalExpense;
 
-        accounts.forEach(account => {
-            const classification = classifyAccount(account.name, account.code);
-            const balance = Number(account.balance || 0);
+        // Proses akun riil dari trial balance untuk balance sheet
+        trialBalance.forEach(entry => {
+            const accountType = entry.account.account_type;
+            const balance = entry.finalBalance;
 
-            if (classification.type === 'PENDAPATAN' || classification.type === 'BEBAN') {
+            // Skip akun nominal (sudah diproses di atas)
+            if (accountType === 'PENDAPATAN' || accountType === 'BEBAN') {
                 return;
             }
 
-            if (classification.type === 'ASET') {
+            if (accountType === 'ASET') {
                 const assetEntry = {
-                    code: account.code,
-                    name: account.name,
+                    code: entry.account.code,
+                    name: entry.account.name,
                     balance: Math.abs(balance)
                 };
 
-                if (['KAS', 'BANK', 'PIUTANG', 'PERSEDIAAN'].includes(classification.category)) {
+                // Klasifikasi aset lancar vs tidak lancar
+                if (['KAS', 'BANK', 'PIUTANG', 'PERSEDIAAN'].includes(entry.account.category)) {
                     balanceSheet.assets.currentAssets.push(assetEntry);
                 } else {
                     balanceSheet.assets.nonCurrentAssets.push(assetEntry);
@@ -1044,25 +1069,26 @@ app.get('/api/reports/balance-sheet', async (req, res) => {
                 balanceSheet.assets.total += Math.abs(balance);
             }
 
-            if (classification.type === 'LIABILITAS') {
+            if (accountType === 'LIABILITAS') {
                 balanceSheet.liabilities.currentLiabilities.push({
-                    code: account.code,
-                    name: account.name,
+                    code: entry.account.code,
+                    name: entry.account.name,
                     balance: Math.abs(balance)
                 });
                 balanceSheet.liabilities.total += Math.abs(balance);
             }
 
-            if (classification.type === 'EKUITAS') {
+            if (accountType === 'EKUITAS') {
                 balanceSheet.equity.accounts.push({
-                    code: account.code,
-                    name: account.name,
+                    code: entry.account.code,
+                    name: entry.account.name,
                     balance: Math.abs(balance)
                 });
                 balanceSheet.equity.total += Math.abs(balance);
             }
         });
 
+        // Tambahkan laba/rugi ke ekuitas
         if (netIncome !== 0) {
             balanceSheet.equity.accounts.push({
                 code: '3900',
@@ -1086,12 +1112,13 @@ app.get('/api/reports/balance-sheet', async (req, res) => {
                 isBalanced: Math.abs(balanceSheet.assets.total - totalLiabilitiesAndEquity) < 0.01
             },
             netIncome: netIncome,
+            dataSource: 'trial-balance',
             generatedAt: new Date().toISOString()
         });
 
     } catch (e) {
         console.error('❌ [GET /api/reports/balance-sheet] Error:', e.message);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to generate balance sheet',
             message: e.message,
             code: e.code,
