@@ -67,6 +67,14 @@ const PORT = process.env.PORT || 2001;
 app.use(cors());
 app.use(express.json());
 
+// ===== SIMPLE AUTH MIDDLEWARE =====
+const authenticateUser = (req, res, next) => {
+    // Untuk sementara, kita pakai user_id = 1 dulu
+    // Nanti akan kita ganti dengan token yang benar
+    req.user = { id: 1 };
+    next();
+};
+
 // ===== DATABASE POOL CONNECTION =====
 const pool = mysql.createPool({
     host: process.env.MYSQLHOST || 'mysql.railway.internal',
@@ -386,14 +394,15 @@ app.post('/api/users/register', async (req, res) => {
 });
 
 // ==================== ACCOUNTS ====================
-app.get('/api/accounts', async (req, res) => {
+app.get('/api/accounts', authenticateUser, async (req, res) => {
     try {
         const rows = await all(`
             SELECT * FROM accounts 
+            WHERE user_id = ?
             ORDER BY 
                 CASE WHEN code = '1' OR code = '0001' THEN 0 ELSE 1 END,
                 id ASC
-        `);
+        `, [req.user.id]); // ✅ Tambahkan WHERE user_id = ?
         res.json(rows);
     } catch (e) {
         console.error('❌ [GET /api/accounts] Error:', e.message);
