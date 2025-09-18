@@ -65,8 +65,19 @@ const app = express();
 const PORT = process.env.PORT || 2001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: 'https://keutrack.netlify.app',
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+
+// Tambahkan header khusus
+app.use((req, res, next) => {
+    res.header('Cross-Origin-Opener-Policy', 'unsafe-none');
+    res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    next();
+});
 
 // ===== PRODUCTION AUTH MIDDLEWARE =====
 const authenticateUser = async (req, res, next) => {
@@ -78,7 +89,7 @@ const authenticateUser = async (req, res, next) => {
         }
 
         // Decode token Google
-        const decoded = jwtDecode(token);  
+        const decoded = jwtDecode(token);
 
         // Cari user di database berdasarkan EMAIL
         let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
@@ -339,7 +350,7 @@ app.post('/api/auth/google/callback', async (req, res) => {
         }
 
         // Verify Google token
-       const decoded = jwtDecode(token);
+        const decoded = jwtDecode(token);
 
         // Cari atau buat user di database
         let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
