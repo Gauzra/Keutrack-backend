@@ -48,12 +48,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import mysql from 'mysql2';
 import cors from 'cors';
+import { OAuth2Client } from 'google-auth-library';
 import { classifyAccount, calculateAccountBalance, generateSimpleAccountCode } from './accountHelper.js';
 // Import default accounts data
 import { defaultAccounts } from './defaultData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// ===== GOOGLE OAUTH CLIENT =====
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '109474537566-johb2fn97km03he16s3cump2k0lf63ht.apps.googleusercontent.com';
+const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const app = express();
 const PORT = process.env.PORT || 2001;
@@ -279,6 +284,70 @@ app.post('/api/users/login', async (req, res) => {
             message: e.message,
             code: e.code,
             endpoint: '/api/users/login'
+        });
+    }
+});
+
+// ==================== GOOGLE OAUTH ====================
+app.post('/api/auth/google', async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'Token is required',
+                required: ['token']
+            });
+        }
+
+        // Verify token dengan Google
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+        const googleId = payload['sub'];
+        const email = payload['email'];
+        const name = payload['name'];
+        const picture = payload['picture'];
+
+        console.log('✅ Google login successful for:', email);
+
+        // Cari user di database berdasarkan email
+        let user = await get('SELECT * FROM users WHERE email = ?', [email]);
+
+        // Jika user belum ada, buat baru
+        if (!user) {
+            const insertResult = await run(
+                'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
+                [name, email, 'google_oauth'] // Password dummy untuk Google users
+            );
+
+            user = await get('SELECT * FROM users WHERE id = ?', [insertResult.insertId]);
+            console.log('✅ New user created from Google OAuth:', email);
+        }
+
+        // Return user data
+        res.json({
+            success: true,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                name: name,
+                picture: picture,
+                loginMethod: 'google'
+            },
+            message: 'Google login successful'
+        });
+
+    } catch (error) {
+        console.error('❌ Google OAuth error:', error.message);
+        res.status(401).json({
+            error: 'Google authentication failed',
+            message: error.message
         });
     }
 });
