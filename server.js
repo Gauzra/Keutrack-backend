@@ -343,11 +343,23 @@ app.post('/api/users/login', async (req, res) => {
 // ==================== GOOGLE OAUTH ====================
 app.post('/auth/google/callback', async (req, res) => {
     try {
-        const { token } = req.body;
+        let token;
+        
+        if (req.headers['content-type'] === 'application/x-www-form-urlencoded') {
+            // Untuk form-urlencoded, token ada di req.body.credential
+            token = req.body.credential || req.body.token;
+        } else {
+            // Untuk JSON
+            token = req.body.token;
+        }
 
+        console.log('🔑 Token received:', token);
+        
         if (!token) {
+            console.log('❌ Token missing. Full body:', req.body);
             return res.status(400).json({ error: 'Token is required' });
         }
+      
 
         // Verify Google token
         const decoded = jwtDecode(token);
