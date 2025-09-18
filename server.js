@@ -89,23 +89,13 @@ const authenticateUser = async (req, res, next) => {
             return res.status(401).json({ error: 'Access token diperlukan' });
         }
 
-        // Decode token Google
         const decoded = jwtDecode(token);
+        const user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
 
-        // Cari user di database berdasarkan EMAIL
-        let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
-
-        // Jika user belum ada, buat user baru
         if (!user) {
-            const insertResult = await run(
-                'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-                [decoded.name, decoded.email, 'google_oauth']
-            );
-            user = await get('SELECT * FROM users WHERE id = ?', [insertResult.insertId]);
-            console.log('✅ User baru dibuat:', user.email);
+            return res.status(401).json({ error: 'User tidak ditemukan' });
         }
 
-        // Set user data untuk request
         req.user = {
             id: user.id,
             username: user.username,
@@ -115,7 +105,7 @@ const authenticateUser = async (req, res, next) => {
         next();
 
     } catch (error) {
-        console.error('❌ Auth error:', error);
+        console.error('Auth error:', error);
         res.status(401).json({ error: 'Token tidak valid' });
     }
 };
@@ -344,23 +334,20 @@ app.post('/api/users/login', async (req, res) => {
 // ==================== GOOGLE OAUTH ====================
 app.post('/auth/google/callback', async (req, res) => {
     try {
-        // Google mengirim token sebagai form-data
-        const token = req.body.credential;  // ✅ credential, bukan token
-        console.log('🔑 Google token:', token);
+        const token = req.body.credential;
+        console.log('🔑 Google token received');
 
         if (!token) {
             return res.status(400).json({ error: 'Google token not found' });
         }
 
-
-        // Verify Google token
         const decoded = jwtDecode(token);
-        console.log('✅ Decoded token:', decoded.email);
-        
-        // Cari atau buat user di database
+        console.log('✅ Decoded token for:', decoded.email);
+
         let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
 
         if (!user) {
+            console.log('🆕 Creating new user for:', decoded.email);
             const insertResult = await run(
                 'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
                 [decoded.name, decoded.email, 'google_oauth']
@@ -368,17 +355,15 @@ app.post('/auth/google/callback', async (req, res) => {
             user = await get('SELECT * FROM users WHERE id = ?', [insertResult.insertId]);
         }
 
-        // Return user data
+        // ✅ RETURN SAMA FORMAT DENGAN LOGIN BIASA
         res.json({
             success: true,
             user: {
                 id: user.id,
                 username: user.username,
-                email: user.email,
-                name: user.username,
-                loginMethod: 'google'
+                email: user.email
             },
-            message: 'Google login successful'
+            message: 'Login berhasil'
         });
 
     } catch (error) {
