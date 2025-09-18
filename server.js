@@ -49,6 +49,7 @@ import { fileURLToPath } from 'url';
 import mysql from 'mysql2';
 import cors from 'cors';
 import { OAuth2Client } from 'google-auth-library';
+import jwt_decode from 'jwt-decode';
 import { classifyAccount, calculateAccountBalance, generateSimpleAccountCode } from './accountHelper.js';
 // Import default accounts data
 import { defaultAccounts } from './defaultData.js';
@@ -67,12 +68,44 @@ const PORT = process.env.PORT || 2001;
 app.use(cors());
 app.use(express.json());
 
-// ===== SIMPLE AUTH MIDDLEWARE =====
-const authenticateUser = (req, res, next) => {
-    // Untuk sementara, kita pakai user_id = 1 dulu
-    // Nanti akan kita ganti dengan token yang benar
-    req.user = { id: 1 }; 
-    next();
+// ===== AUTH MIDDLEWARE YANG SESUAI =====
+const authenticateUser = async (req, res, next) => {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+
+        if (!token) {
+            return res.status(401).json({ error: 'Access token diperlukan' });
+        }
+
+        // Verify Google token
+        const decoded = jwt_decode(token);
+
+        // Cari user di database berdasarkan EMAIL
+        let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
+
+        // Jika user belum ada, buat user baru
+        if (!user) {
+            const insertResult = await run(
+                'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
+                [decoded.name, decoded.email, 'google_oauth']
+            );
+            user = await get('SELECT * FROM users WHERE id = ?', [insertResult.insertId]);
+            console.log('✅ User baru dibuat:', user.email);
+        }
+
+        // Set user data untuk request
+        req.user = {
+            id: user.id,
+            username: user.username,
+            email: user.email
+        };
+
+        next();
+
+    } catch (error) {
+        console.error('❌ Auth error:', error);
+        res.status(401).json({ error: 'Token tidak valid' });
+    }
 };
 
 // ===== DATABASE POOL CONNECTION =====
