@@ -49,7 +49,7 @@ import { fileURLToPath } from 'url';
 import mysql from 'mysql2';
 import cors from 'cors';
 import { OAuth2Client } from 'google-auth-library';
-import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import { classifyAccount, calculateAccountBalance, generateSimpleAccountCode } from './accountHelper.js';
 // Import default accounts data
 import { defaultAccounts } from './defaultData.js';
@@ -78,7 +78,7 @@ const authenticateUser = async (req, res, next) => {
         }
 
         // Decode token Google
-        const decoded = jwt_decode(token);
+        const decoded = jwtDecode(token);  
 
         // Cari user di database berdasarkan EMAIL
         let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
@@ -339,7 +339,7 @@ app.post('/api/auth/google', async (req, res) => {
         }
 
         // Verify Google token
-        const decoded = jwt_decode(token);
+       const decoded = jwtDecode(token);
 
         // Cari atau buat user di database
         let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
