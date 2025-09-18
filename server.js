@@ -70,6 +70,7 @@ app.use(cors({
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Tambahkan header khusus
@@ -343,27 +344,19 @@ app.post('/api/users/login', async (req, res) => {
 // ==================== GOOGLE OAUTH ====================
 app.post('/auth/google/callback', async (req, res) => {
     try {
-        let token;
-        
-        if (req.headers['content-type'] === 'application/x-www-form-urlencoded') {
-            // Untuk form-urlencoded, token ada di req.body.credential
-            token = req.body.credential || req.body.token;
-        } else {
-            // Untuk JSON
-            token = req.body.token;
+        // Google mengirim token sebagai form-data
+        const token = req.body.credential;  // ✅ credential, bukan token
+        console.log('🔑 Google token:', token);
+
+        if (!token) {
+            return res.status(400).json({ error: 'Google token not found' });
         }
 
-        console.log('🔑 Token received:', token);
-        
-        if (!token) {
-            console.log('❌ Token missing. Full body:', req.body);
-            return res.status(400).json({ error: 'Token is required' });
-        }
-      
 
         // Verify Google token
         const decoded = jwtDecode(token);
-
+        console.log('✅ Decoded token:', decoded.email);
+        
         // Cari atau buat user di database
         let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
 
