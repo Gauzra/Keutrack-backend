@@ -49,6 +49,7 @@ import { fileURLToPath } from 'url';
 import mysql from 'mysql2';
 import cors from 'cors';
 import { OAuth2Client } from 'google-auth-library';
+import jwt_decode from 'jwt-decode';
 import { classifyAccount, calculateAccountBalance, generateSimpleAccountCode } from './accountHelper.js';
 // Import default accounts data
 import { defaultAccounts } from './defaultData.js';
@@ -67,29 +68,43 @@ const PORT = process.env.PORT || 2001;
 app.use(cors());
 app.use(express.json());
 
-// ===== AUTH MIDDLEWARE (FALLBACK SEMENTARA) =====
+// ===== PRODUCTION AUTH MIDDLEWARE =====
 const authenticateUser = async (req, res, next) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
 
-        // 🟡 FALLBACK SEMENTARA - Pakai user_id = 1 dulu
+        if (!token) {
+            return res.status(401).json({ error: 'Access token diperlukan' });
+        }
+
+        // Decode token Google
+        const decoded = jwt_decode(token);
+
+        // Cari user di database berdasarkan EMAIL
+        let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
+
+        // Jika user belum ada, buat user baru
+        if (!user) {
+            const insertResult = await run(
+                'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
+                [decoded.name, decoded.email, 'google_oauth']
+            );
+            user = await get('SELECT * FROM users WHERE id = ?', [insertResult.insertId]);
+            console.log('✅ User baru dibuat:', user.email);
+        }
+
+        // Set user data untuk request
         req.user = {
-            id: 1,
-            email: 'temporary@user.com',
-            name: 'Temporary User'
+            id: user.id,
+            username: user.username,
+            email: user.email
         };
 
-        console.log('⚠️  Using fallback authentication - user_id: 1');
         next();
 
     } catch (error) {
-        req.user = {
-            id: 1,
-            email: 'fallback@user.com',
-            name: 'Fallback User'
-        };
-        console.log('⚠️  Fallback authentication due to error:', error.message);
-        next();
+        console.error('❌ Auth error:', error);
+        res.status(401).json({ error: 'Token tidak valid' });
     }
 };
 
@@ -320,33 +335,39 @@ app.post('/api/auth/google', async (req, res) => {
         const { token } = req.body;
 
         if (!token) {
-            return res.status(400).json({
-                error: 'Validation error',
-                message: 'Token is required'
-            });
+            return res.status(400).json({ error: 'Token is required' });
         }
 
-        // 🟡 FALLBACK SEMENTARA - Return user_id = 1
-        const userData = {
-            id: 1,
-            username: 'google_user',
-            email: 'google@user.com',
-            name: 'Google User',
-            loginMethod: 'google'
-        };
+        // Verify Google token
+        const decoded = jwt_decode(token);
 
+        // Cari atau buat user di database
+        let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
+
+        if (!user) {
+            const insertResult = await run(
+                'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
+                [decoded.name, decoded.email, 'google_oauth']
+            );
+            user = await get('SELECT * FROM users WHERE id = ?', [insertResult.insertId]);
+        }
+
+        // Return user data
         res.json({
             success: true,
-            user: userData,
-            message: 'Google login successful (fallback mode)'
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                name: user.username,
+                loginMethod: 'google'
+            },
+            message: 'Google login successful'
         });
 
     } catch (error) {
-        console.error('❌ Google OAuth error:', error.message);
-        res.status(401).json({
-            error: 'Google authentication failed',
-            message: error.message
-        });
+        console.error('Google OAuth error:', error);
+        res.status(401).json({ error: 'Google authentication failed' });
     }
 });
 
