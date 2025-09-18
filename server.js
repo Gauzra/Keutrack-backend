@@ -341,7 +341,7 @@ app.post('/api/users/login', async (req, res) => {
 });
 
 // ==================== GOOGLE OAUTH ====================
-app.post('/api/auth/google/callback', async (req, res) => {
+app.post('/auth/google/callback', async (req, res) => {
     try {
         const { token } = req.body;
 
