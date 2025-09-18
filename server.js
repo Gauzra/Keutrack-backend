@@ -71,7 +71,7 @@ app.use(express.json());
 const authenticateUser = (req, res, next) => {
     // Untuk sementara, kita pakai user_id = 1 dulu
     // Nanti akan kita ganti dengan token yang benar
-    req.user = { id: 1 };
+    req.user = { id: 1 }; 
     next();
 };
 
