@@ -1,7 +1,7 @@
 /*
 ===============================================================================
 🔄 KEUTRACK BACKEND SERVER - ALUR AKUNTANSI BERLAPIS (LAYERED ACCOUNTING FLOW)
-===============================================================================
+==============================================
 
 📚 STANDAR AKUNTANSI YANG DITERAPKAN:
 ➡️ Implementasi mengikuti Standar Akuntansi Keuangan untuk Entitas Mikro, Kecil, dan Menengah (SAK EMKM)
