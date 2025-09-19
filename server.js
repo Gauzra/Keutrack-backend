@@ -324,15 +324,14 @@ app.post('/api/users/register', async (req, res) => {
 });
 
 // ==================== ACCOUNTS ====================
-app.get('/api/accounts', authenticateUser, async (req, res) => {
+app.get('/api/accounts', async (req, res) => {
     try {
         const rows = await all(`
-            SELECT * FROM accounts 
-            WHERE user_id = ?
-            ORDER BY 
-                CASE WHEN code = '1' OR code = '0001' THEN 0 ELSE 1 END,
-                id ASC
-        `, [req.user.id]); // ✅ Tambahkan WHERE user_id = ?
+      SELECT * FROM accounts
+      ORDER BY 
+        CASE WHEN code = '1' OR code = '0001' THEN 0 ELSE 1 END,
+        id ASC
+    `);
         res.json(rows);
     } catch (e) {
         console.error('❌ [GET /api/accounts] Error:', e.message);
@@ -344,6 +343,7 @@ app.get('/api/accounts', authenticateUser, async (req, res) => {
         });
     }
 });
+
 
 app.post('/api/accounts', async (req, res) => {
     try {
