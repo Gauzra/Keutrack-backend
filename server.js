@@ -48,8 +48,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import mysql from 'mysql2';
 import cors from 'cors';
-import { OAuth2Client } from 'google-auth-library';
-import { jwtDecode } from 'jwt-decode';
 import { classifyAccount, calculateAccountBalance, generateSimpleAccountCode } from './accountHelper.js';
 // Import default accounts data
 import { defaultAccounts } from './defaultData.js';
@@ -57,20 +55,11 @@ import { defaultAccounts } from './defaultData.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ===== GOOGLE OAUTH CLIENT =====
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '109474537566-johb2fn97km03he16s3cump2k0lf63ht.apps.googleusercontent.com';
-const client = new OAuth2Client(GOOGLE_CLIENT_ID);
-
 const app = express();
 const PORT = process.env.PORT || 2001;
 
 // Middleware
-app.use(cors({
-    origin: 'https://keutrack.netlify.app',
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 app.use(express.json());
 
 // Tambahkan header khusus
@@ -79,36 +68,6 @@ app.use((req, res, next) => {
     res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
     next();
 });
-
-// ===== PRODUCTION AUTH MIDDLEWARE =====
-const authenticateUser = async (req, res, next) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-
-        if (!token) {
-            return res.status(401).json({ error: 'Access token diperlukan' });
-        }
-
-        const decoded = jwtDecode(token);
-        const user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
-
-        if (!user) {
-            return res.status(401).json({ error: 'User tidak ditemukan' });
-        }
-
-        req.user = {
-            id: user.id,
-            username: user.username,
-            email: user.email
-        };
-
-        next();
-
-    } catch (error) {
-        console.error('Auth error:', error);
-        res.status(401).json({ error: 'Token tidak valid' });
-    }
-};
 
 // ===== DATABASE POOL CONNECTION =====
 const pool = mysql.createPool({
@@ -328,47 +287,6 @@ app.post('/api/users/login', async (req, res) => {
             code: e.code,
             endpoint: '/api/users/login'
         });
-    }
-});
-
-// ==================== GOOGLE OAUTH ====================
-app.post('/auth/google/callback', async (req, res) => {
-    try {
-        const token = req.body.credential;
-        console.log('🔑 Google token received');
-
-        if (!token) {
-            return res.status(400).json({ error: 'Google token not found' });
-        }
-
-        const decoded = jwtDecode(token);
-        console.log('✅ Decoded token for:', decoded.email);
-
-        let user = await get('SELECT * FROM users WHERE email = ?', [decoded.email]);
-
-        if (!user) {
-            console.log('🆕 Creating new user for:', decoded.email);
-            const insertResult = await run(
-                'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-                [decoded.name, decoded.email, 'google_oauth']
-            );
-            user = await get('SELECT * FROM users WHERE id = ?', [insertResult.insertId]);
-        }
-
-        // ✅ RETURN SAMA FORMAT DENGAN LOGIN BIASA
-        res.json({
-            success: true,
-            user: {
-                id: user.id,
-                username: user.username,
-                email: user.email
-            },
-            message: 'Login berhasil'
-        });
-
-    } catch (error) {
-        console.error('Google OAuth error:', error);
-        res.status(401).json({ error: 'Google authentication failed' });
     }
 });
 
